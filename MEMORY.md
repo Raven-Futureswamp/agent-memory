@@ -49,11 +49,15 @@
 - **API keys:** `/Users/studiomac/clawd/.env`
 - **Daily logs:** `memory/YYYY-MM-DD.md`
 
+## Upcoming Projects
+- **JUCE projects** — Audio plugin development (VSTs, etc). Jess is into this. Will need detailed project tracking.
+
 ## Lessons Learned
 1. **Write things down immediately** — conversation history can be lost
 2. **Memory files persist, chat history doesn't**
 3. Contact cards don't come through as text — ask for typed numbers
 4. Toggle iMessage off/on to force re-registration with Apple
+5. **For projects: create dedicated notes** — don't rely on chat history
 
 ---
 
