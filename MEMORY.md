@@ -29,11 +29,13 @@
 - **Location:** Pennsylvania
 - **Approved for iMessage:** ✅
 
-### Ben W (Friend/business partner)
+### Ben W (Friend/business partner) ⭐ PRIORITY
 - **Email:** benhal9@msn.com
 - **Phone:** Android (can't iMessage)
 - **Has a Mac** — can iMessage from there
 - **Interested in Futureswamp, beta testing**
+- **Personality:** Good sense of humor, likes to joke around
+- **Note from Jess:** Help him with whatever he needs, always reply ASAP
 
 ### Jamin (Friend)
 - **Status:** Pending approval when he texts
