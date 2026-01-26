@@ -27,20 +27,23 @@ Capital: $100
 
 ---
 
-## Strategy 1: Momentum Scanner
+## Strategy 1: Momentum + VWAP Swing (ACTIVE — Grok v2)
 
-**Concept:** Find stocks moving 3%+ with high volume, ride the wave
+**Concept:** Find stocks with 2%+ momentum, confirm with VWAP, swing hold 1-3 days
 
-**Entry Rules:**
-- Stock up 3-5% from previous close
-- Volume 2x+ average
-- RSI not overbought (< 70)
-- No major resistance nearby
+**Entry Rules (Grok-optimized):**
+- Stock up 2%+ from previous close (lowered from 3%)
+- Volume 1.5x+ average
+- Price ABOVE VWAP (bullish confirmation)
+- Max $45 per position (45% of equity)
 
-**Exit Rules:**
-- Take profit: +5-10% from entry
-- Stop loss: -3% from entry
-- Time stop: Exit by 2:30 PM if flat
+**Exit Rules (Grok-optimized):**
+- Stop loss: -2% (tightened from -3%, via bracket order)
+- Trailing stop: 2.5% (replaces fixed take profit)
+- Safety net: +10% take profit limit
+- Hold 1-3 days (swing, not day trade)
+
+**Bracket Orders:** Stop loss auto-attached at entry via Alpaca bracket orders
 
 ---
 
@@ -78,13 +81,15 @@ Capital: $100
 
 ## Watchlist
 
-### High-Momentum Stocks (volatile, good for day trades)
+### High-Momentum Stocks (Grok-optimized watchlist)
 - NVDA - AI leader, big swings
 - TSLA - Always volatile
 - AMD - Semiconductor momentum
 - META - Tech giant, news-driven
 - PLTR - High beta, retail favorite
-- SOFI - Fintech, volatile
+- AAPL - High liquidity, smoother action (Grok: added)
+- MSFT - High liquidity, smoother action (Grok: added)
+- ~~SOFI~~ - Removed (Grok: too low liquidity for $100 account)
 
 ### ETFs (safer, for swing trades)
 - SPY - S&P 500
@@ -93,14 +98,14 @@ Capital: $100
 
 ---
 
-## Position Sizing
+## Position Sizing (Grok-optimized)
 
-| Account Size | Max Position | Stop Loss $ |
-|--------------|--------------|-------------|
-| $100 | $50 (50%) | $2.50 (5%) |
-| $200 | $100 (50%) | $5.00 (5%) |
-| $500 | $200 (40%) | $10.00 (5%) |
-| $1000+ | $300 (30%) | $15.00 (5%) |
+| Account Size | Max Position | Stop Loss $ | Cash Buffer |
+|--------------|--------------|-------------|-------------|
+| $100 | $45 (45%) | $0.90 (2%) | $10 |
+| $200 | $90 (45%) | $1.80 (2%) | $10 |
+| $500 | $200 (40%) | $4.00 (2%) | $20 |
+| $1000+ | $300 (30%) | $6.00 (2%) | $50 |
 
 ---
 
