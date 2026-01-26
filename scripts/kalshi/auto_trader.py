@@ -46,6 +46,7 @@ MIN_ROI = 8                # Minimum ROI %
 MIN_VOLUME = 1000          # Minimum volume
 MIN_EDGE_CENTS = 3         # Min edge after fees (Kalshi ~2¢ fee)
 MAX_TRADE_CENTS = int(CAPITAL * MAX_PER_TRADE_PCT)  # $10 = 1000¢
+MIN_CASH_TO_TRADE = 600    # Need at least $6 to attempt any trade ($5 buffer + $1 min)
 
 # Stop-loss / Take-profit thresholds (Grok recs)
 STOP_LOSS_PCT = -0.15      # Exit if position value drops 15%
@@ -181,6 +182,9 @@ def check_risk_rules(opp, cash_cents, position_value_cents, num_positions=0):
     volume = opp.get("volume", 0)
     edge = opp.get("edge", 0)
     days = opp.get("days_left", 999)
+    
+    if cash_cents < MIN_CASH_TO_TRADE:
+        return False, f"Cash too low (${cash_cents/100:.2f} < ${MIN_CASH_TO_TRADE/100:.2f})"
     
     if spread < MIN_SPREAD:
         return False, f"Spread {spread} < {MIN_SPREAD}"
@@ -385,9 +389,9 @@ def run_auto_trader():
     except Exception as e:
         print(f"  ⚠️ Stop/TP check error: {e}")
     
-    if cash < 500:  # Less than $5
-        print("  ⚠️ Cash too low (<$5). Skipping scan.")
-        return {"error": "Low cash", "trades": [], "exits": exits_made}
+    if cash < MIN_CASH_TO_TRADE:
+        print(f"  ⚠️ Cash too low (${cash/100:.2f} < ${MIN_CASH_TO_TRADE/100:.2f}). Skipping scan.")
+        return {"trades": [], "exits": exits_made, "skipped": "low_cash"}
     
     # 3. Run scanner
     print()
@@ -474,6 +478,8 @@ def run_auto_trader():
             })
         else:
             print(f"  ⚠️ TRADE FAILED: {result.get('error')}")
+            print(f"  🛑 Stopping — likely insufficient funds. No more attempts this run.")
+            break
     
     # 5. Summary
     print()
