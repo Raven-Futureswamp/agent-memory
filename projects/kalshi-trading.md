@@ -54,7 +54,7 @@ Capital: $100
 | Kalshi | ✅ Live | API key (have it) |
 | Polymarket | ✅ Live | None |
 | PredictIt | ✅ Live | None |
-| The Odds API | 🔜 | Free @ https://the-odds-api.com |
+| The Odds API | ✅ Live | Free key added |
 | FRED (Fed rates) | ✅ Live | Free key added |
 
 **Last scan (2026-01-25 20:39):**
@@ -144,10 +144,39 @@ Build ML model on historical outcomes. Trade if Kalshi odds differ >10% from mod
 - [x] 24/7 monitoring ✅
 - [x] Auto-scan for mispriced contracts ✅
 - [x] Multi-source arbitrage (Polymarket + PredictIt) ✅
-- [ ] Sports odds integration (needs free API key)
+- [x] Sports odds integration (The Odds API) ✅
 - [x] FRED economic data (Fed rate, CPI, unemployment) ✅
-- [ ] Alert on opportunities (webhook/Telegram)
-- [ ] Auto-execute trades
+- [x] Auto-execute trades (Level 2 semi-auto) ✅
+- [x] Alert on trades (iMessage to Jess) ✅
+- [ ] Undo/rollback command ("kalshi undo")
+- [ ] Daily P&L summary report
+
+## Auto-Trader (Level 2 — Semi-Autonomous)
+
+**Script:** `scripts/kalshi/auto_trader.py`
+**Schedule:** Every hour via Clawdbot cron
+**Alerts:** iMessage to Jess on every trade
+
+**Risk Rules:**
+- Spread > 5 pts between platforms
+- ROI > 8%
+- Volume > 1,000
+- Max $20 per trade (20% of capital)
+- Max 60% of capital in positions at once
+- Short-term only (<60 days)
+- Min 3¢ edge after fees
+- Keeps $5 cash buffer
+
+**How it works:**
+1. Scans Kalshi vs Polymarket + PredictIt + Odds API every hour
+2. Checks FRED for economic context
+3. If opportunity passes ALL risk rules → auto-executes
+4. Alerts Jess via iMessage with trade details
+5. Jess can say "kalshi undo" to reverse within 1 hour
+
+**Logs:** `logs/kalshi/auto_trades.jsonl`
+
+---
 
 ## Scanner Setup
 
