@@ -21,6 +21,7 @@ LOG_DIR = PROJECT_ROOT / "logs" / "kalshi"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "")
+FRED_API_KEY = os.getenv("FRED_API_KEY", "")
 MAX_DAYS = 60  # Only markets closing within this many days
 
 # ============================================================
@@ -150,12 +151,17 @@ def fetch_sports_odds():
                    and any(k in s["key"] for k in ["nfl", "nba", "mlb", "nhl"])]
 
         for sport in targets[:4]:
-            games = requests.get(
+            resp = requests.get(
                 f"https://api.the-odds-api.com/v4/sports/{sport}/odds/",
                 params={"apiKey": ODDS_API_KEY, "regions": "us",
                         "markets": "h2h", "oddsFormat": "american"},
                 timeout=15
-            ).json()
+            )
+            if resp.status_code != 200:
+                continue
+            games = resp.json()
+            if not isinstance(games, list):
+                continue
             for g in games:
                 home, away = g.get("home_team", ""), g.get("away_team", "")
                 for bk in g.get("bookmakers", []):
@@ -183,6 +189,45 @@ def american_to_prob(odds):
     if odds > 0:
         return round(100 / (odds + 100) * 100, 1)
     return round(abs(odds) / (abs(odds) + 100) * 100, 1)
+
+
+def fetch_fred_econ():
+    """Fetch key economic data from FRED for CPI/Fed rate context."""
+    if not FRED_API_KEY:
+        print("  ⏭️  FRED: no key (https://fred.stlouisfed.org)")
+        return {}
+    print("  📡 FRED economic data...")
+    data = {}
+    series = {
+        "DFEDTARU": "fed_rate_upper",      # Fed Funds upper target
+        "DFEDTARL": "fed_rate_lower",      # Fed Funds lower target
+        "CPIAUCSL": "cpi_level",           # CPI All Urban
+        "UNRATE": "unemployment",          # Unemployment rate
+        "GDP": "gdp",                      # GDP
+    }
+    for sid, label in series.items():
+        try:
+            r = requests.get(
+                "https://api.stlouisfed.org/fred/series/observations",
+                params={"series_id": sid, "api_key": FRED_API_KEY,
+                        "file_type": "json", "limit": 3, "sort_order": "desc"},
+                timeout=10
+            )
+            obs = r.json().get("observations", [])
+            vals = [float(o["value"]) for o in obs if o.get("value", ".") != "."]
+            if vals:
+                data[label] = vals[0]
+                if len(vals) >= 2 and label == "cpi_level":
+                    data["cpi_mom"] = round((vals[0] - vals[1]) / vals[1] * 100, 3)
+        except:
+            pass
+    if data:
+        print(f"    ✅ Fed rate: {data.get('fed_rate_lower','?')}-{data.get('fed_rate_upper','?')}%")
+        if "cpi_mom" in data:
+            print(f"    ✅ CPI MoM: {data['cpi_mom']}%")
+        if "unemployment" in data:
+            print(f"    ✅ Unemployment: {data['unemployment']}%")
+    return data
 
 
 # ============================================================
@@ -342,6 +387,7 @@ def run():
     poly = fetch_polymarket()
     pi = fetch_predictit()
     odds = fetch_sports_odds()
+    econ = fetch_fred_econ()
     print()
 
     externals = [poly, pi]
@@ -349,6 +395,17 @@ def run():
         externals.append(odds)
 
     opps = match_strict(kalshi, externals)
+
+    # Add FRED context to economic opportunities
+    if econ:
+        for opp in opps:
+            name_lower = opp["name"].lower()
+            if "cpi" in name_lower and "cpi_mom" in econ:
+                opp["fred_note"] = f"Last CPI MoM: {econ['cpi_mom']}%"
+            elif "fed" in name_lower and "fed_rate_upper" in econ:
+                opp["fred_note"] = f"Current rate: {econ.get('fed_rate_lower','?')}-{econ['fed_rate_upper']}%"
+            elif "recession" in name_lower and "unemployment" in econ:
+                opp["fred_note"] = f"Unemployment: {econ['unemployment']}%"
 
     if opps:
         print(f"🚨 {len(opps)} CROSS-PLATFORM OPPORTUNITIES")
@@ -360,6 +417,8 @@ def run():
             print(f"     External: YES {o['external_yes']}¢  ({o['external_source']})")
             print(f"     Spread: {o['spread']} pts | ROI: {o['roi']}% | Days: {o['days_left']}")
             print(f"     → {o['trade']}")
+            if o.get("fred_note"):
+                print(f"     📈 FRED: {o['fred_note']}")
     else:
         print("✅ No cross-platform discrepancies found.")
 
@@ -368,6 +427,8 @@ def run():
     print("=" * 65)
     src_count = sum(1 for s in [poly, pi, odds] if s)
     print(f"  Sources: Kalshi + {src_count} external ({len(kalshi)} + {len(poly)} + {len(pi)} mkts)")
+    if econ:
+        print(f"  📈 FRED: Rate {econ.get('fed_rate_lower','?')}-{econ.get('fed_rate_upper','?')}% | CPI MoM {econ.get('cpi_mom','?')}% | Unemp {econ.get('unemployment','?')}%")
     missing = []
     if not ODDS_API_KEY:
         missing.append("ODDS_API_KEY → https://the-odds-api.com (free 500/mo)")

@@ -55,11 +55,12 @@ Capital: $100
 | Polymarket | ✅ Live | None |
 | PredictIt | ✅ Live | None |
 | The Odds API | 🔜 | Free @ https://the-odds-api.com |
-| FRED (Fed rates) | 🔜 | Free @ https://fred.stlouisfed.org |
+| FRED (Fed rates) | ✅ Live | Free key added |
 
-**Last scan (2026-01-25 20:30):**
-- 3,445 short-term Kalshi markets
+**Last scan (2026-01-25 20:39):**
+- 3,412 short-term Kalshi markets (<60 days)
 - 200 Polymarket + 760 PredictIt contracts
+- FRED: Fed rate 3.5-3.75% | CPI MoM +0.31% | Unemployment 4.4%
 - 2 cross-platform discrepancies found
 
 ---
@@ -144,7 +145,7 @@ Build ML model on historical outcomes. Trade if Kalshi odds differ >10% from mod
 - [x] Auto-scan for mispriced contracts ✅
 - [x] Multi-source arbitrage (Polymarket + PredictIt) ✅
 - [ ] Sports odds integration (needs free API key)
-- [ ] FRED economic data (needs free API key)
+- [x] FRED economic data (Fed rate, CPI, unemployment) ✅
 - [ ] Alert on opportunities (webhook/Telegram)
 - [ ] Auto-execute trades
 
