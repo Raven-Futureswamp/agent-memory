@@ -161,7 +161,7 @@ def execute_exit(client, exit_info):
         else:
             order.no_price = current_price
 
-        response = client._portfolio_api.create_order(create_order_request=order)
+        response = client._portfolio_api.create_order(**order.model_dump(exclude_none=True))
         return {"success": True, "response": str(response)[:200]}
     except Exception as e:
         print(f"  ⚠️ Exit failed: {e}")
@@ -295,11 +295,14 @@ def find_ticker(client, opp):
 
 def execute_trade(client, opp, order_details):
     """Execute a trade and return result."""
-    # Find ticker
     ticker = find_ticker(client, opp)
     if not ticker:
         return {"success": False, "error": "Could not find ticker"}
-    
+    return execute_trade_with_ticker(client, opp, order_details, ticker)
+
+
+def execute_trade_with_ticker(client, opp, order_details, ticker):
+    """Execute a trade with a known ticker (avoids redundant lookup)."""
     print(f"  📤 Placing order: {order_details['count']} {order_details['side'].upper()} "
           f"@ {order_details['price']}¢ on {ticker}")
     
@@ -399,6 +402,16 @@ def run_auto_trader():
     
     # 4. Evaluate each opportunity
     trades_made = []
+    
+    # Collect tickers we already hold to avoid duplicate buys
+    held_tickers = set()
+    for p in positions:
+        t = getattr(p, 'ticker', '')
+        if t and getattr(p, 'position', 0) != 0:
+            held_tickers.add(t)
+    if held_tickers:
+        print(f"📌 Already holding: {', '.join(held_tickers)}")
+    
     print("🎯 Evaluating opportunities against risk rules...")
     print("-" * 65)
     
@@ -418,6 +431,16 @@ def run_auto_trader():
             print(f"  ❌ {name}: Could not calculate valid order")
             continue
         
+        # Find ticker BEFORE executing to check for duplicates
+        ticker = find_ticker(client, opp)
+        if not ticker:
+            print(f"  ❌ {name}: Could not find ticker")
+            continue
+        
+        if ticker in held_tickers:
+            print(f"  ⏭️ {name}: Already holding {ticker} — skipping")
+            continue
+        
         # Flag catalyst windows
         catalyst_note = opp.get("catalyst_note", "")
         
@@ -428,13 +451,14 @@ def run_auto_trader():
         if catalyst_note:
             print(f"     ⚡ CATALYST: {catalyst_note}")
         
-        # Execute
-        result = execute_trade(client, opp, order)
+        # Execute — pass ticker directly to avoid redundant lookup
+        result = execute_trade_with_ticker(client, opp, order, ticker)
         
         if result.get("success"):
             print(f"  🎉 TRADE EXECUTED: {result['count']} {result['side'].upper()} @ {result['price']}¢")
             cash -= order["total_cost_cents"]
             num_positions += 1
+            held_tickers.add(ticker)
             trades_made.append({
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "name": name,
