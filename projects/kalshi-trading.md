@@ -11,7 +11,8 @@ Capital: $100
 ## Account Status
 
 - **API Connected:** ✅ Yes
-- **Balance:** $60.12 cash + $39.46 in positions = $99.58 total
+- **Balance:** $64.58 cash + ~$34 in positions = ~$99 total
+- **Note:** Selling Trump ends Fed (2029 too long) — 5/21 filled, 16 resting at 90¢
 - **API Key ID:** 898f7406-b498-4205-8949-c9f137403966
 - **Private Key:** `.kalshi-private-key.pem`
 
@@ -29,15 +30,19 @@ Capital: $100
 ## Scanner v4 Improvements (from Grok)
 
 - ✅ **Short-term focus** — Prioritizes markets < 30 days
-- ✅ **Position sizing** — Max 20% of capital per trade ($20)
+- ✅ **Position sizing** — Max 10% of capital per trade ($10) — smaller, diversified
 - ✅ **Fee accounting** — Min 3¢ edge after fees
 - ✅ **Priority tiers** — HOT (short-term) → Medium → Long-term
 - ✅ **ROI calculation** — Shows % return per trade
 - ✅ **Multi-source arbitrage** — Cross-references Kalshi vs Polymarket, PredictIt
-- 🔜 **Sports odds** — The Odds API (free key needed)
-- 🔜 **FRED econ data** — Fed rate probabilities (free key needed)
+- ✅ **Sports odds** — The Odds API with multi-book consensus
+- ✅ **FRED econ data** — Fed rate, CPI, GDP, unemployment
+- ✅ **CPI probability model** — FRED 12-month MoM distribution → probability thresholds
+- ✅ **Catalyst calendar** — Flags Fed meetings, CPI releases, jobs reports within 48h
+- ✅ **Stop-loss / Take-profit** — Auto-exit at -15% / +20%
+- ✅ **Position count limit** — Max 5-6 smaller positions (diversified)
 
-## Arbitrage Scanner v2
+## Arbitrage Scanner v2.1
 
 **Script:** `scripts/kalshi/arbitrage_v2.py`
 **Run:** `cd ~/clawd && source .venv/bin/activate && python3 scripts/kalshi/arbitrage_v2.py`
@@ -46,7 +51,10 @@ Capital: $100
 - Fetches all Kalshi markets closing within 60 days (vol ≥ 500)
 - Cross-references against Polymarket + PredictIt prices
 - Strict keyword matching only (no fuzzy = no junk)
-- Flags discrepancies > 3% spread
+- CPI probability model (FRED 12-month MoM distribution → Gaussian + empirical blend)
+- Catalyst calendar (Fed meetings, CPI releases, jobs reports within 48h)
+- Sports odds multi-book consensus (American → implied probability, flag >5% gap)
+- Expanded keyword rules: CPI ranges, Fed decisions, GDP, unemployment, weather, NFL/NBA teams
 
 **Sources:**
 | Source | Status | Key Needed? |
@@ -55,13 +63,20 @@ Capital: $100
 | Polymarket | ✅ Live | None |
 | PredictIt | ✅ Live | None |
 | The Odds API | ✅ Live | Free key added |
-| FRED (Fed rates) | ✅ Live | Free key added |
+| FRED (Fed rates, CPI, GDP, unemployment) | ✅ Live | Free key added |
 
-**Last scan (2026-01-25 20:39):**
-- 3,412 short-term Kalshi markets (<60 days)
-- 200 Polymarket + 760 PredictIt contracts
-- FRED: Fed rate 3.5-3.75% | CPI MoM +0.31% | Unemployment 4.4%
-- 2 cross-platform discrepancies found
+**v2.1 Enhancements (Grok recommendations 2026-01-25):**
+1. **CPI Probability Model** — Fetches 12 months CPI MoM from FRED, calculates empirical + Gaussian distribution, compares vs Kalshi CPI market prices. Flags gaps >5%.
+2. **Catalyst Calendar** — Hardcoded FOMC, CPI release, and jobs report dates. Flags when within 48h (high-opportunity windows).
+3. **Better Sports Odds** — Averages across ALL bookmakers for consensus probability. Only matches game outcome markets (filters prop bets). Flags >5% gap vs Kalshi.
+4. **Expanded Keyword Rules** — CPI monthly ranges (0.0-0.4%), Fed rate decisions (hold/cut/hike), GDP growth ranges, unemployment thresholds, weather (hurricane, temperature, cities), NFL teams (14 teams), NBA teams (10 teams), tariffs, debt ceiling.
+
+**Last scan (2026-01-25 21:14):**
+- 3,094 short-term Kalshi markets (<60 days)
+- 200 Polymarket + 760 PredictIt + 80 sportsbook lines
+- FRED: Rate 3.5-3.75% | CPI MoM +0.307% (mean: 0.249%, stdev: 0.139%) | Unemp 4.4% | GDP 4.4%
+- CPI Model: 6 thresholds evaluated (>0.0% through >0.5%)
+- 14 opportunities found (10 CPI model-based)
 
 ---
 
@@ -120,9 +135,18 @@ Build ML model on historical outcomes. Trade if Kalshi odds differ >10% from mod
 
 ---
 
-## Risk Rules
+## Risk Rules (Updated per Grok recs 2026-01-25)
 
-- Max 10-20% of capital per trade ($10-20)
+- **Max 10% per trade ($10)** — smaller positions, more diversified (was 20%/$20)
+- **Max 60% in positions** — allows 5-6 smaller positions simultaneously
+- **Max 6 positions** — enforced in auto-trader
+- **Stop-loss: -15%** — auto-exit if position value drops 15% from entry
+- **Take-profit: +20%** — auto-exit if position value rises 20% from entry
+- **Min spread: 5 pts** between platforms
+- **Min ROI: 8%**
+- **Min volume: 1,000**
+- **Min 3¢ edge** after Kalshi fees
+- **Short-term only** — <60 days to close
 - Paper trade first to test strategies
 - Consider VPS for 24/7 operation (~$5/mo AWS Lightsail)
 
@@ -157,22 +181,26 @@ Build ML model on historical outcomes. Trade if Kalshi odds differ >10% from mod
 **Schedule:** Every hour via Clawdbot cron
 **Alerts:** iMessage to Jess on every trade
 
-**Risk Rules:**
+**Risk Rules (updated 2026-01-25):**
 - Spread > 5 pts between platforms
 - ROI > 8%
 - Volume > 1,000
-- Max $20 per trade (20% of capital)
+- **Max $10 per trade (10% of capital)** — was $20/20%
 - Max 60% of capital in positions at once
+- **Max 6 positions** — target 5-6 smaller diversified bets
 - Short-term only (<60 days)
 - Min 3¢ edge after fees
 - Keeps $5 cash buffer
+- **Stop-loss: -15%** — auto-exits if position value drops
+- **Take-profit: +20%** — auto-exits if position value rises
 
 **How it works:**
-1. Scans Kalshi vs Polymarket + PredictIt + Odds API every hour
-2. Checks FRED for economic context
-3. If opportunity passes ALL risk rules → auto-executes
-4. Alerts Jess via iMessage with trade details
-5. Jess can say "kalshi undo" to reverse within 1 hour
+1. Checks existing positions for stop-loss/take-profit triggers → auto-exits
+2. Scans Kalshi vs Polymarket + PredictIt + Odds API + CPI model every hour
+3. Checks FRED for economic context + catalyst calendar
+4. If opportunity passes ALL risk rules → auto-executes
+5. Alerts Jess via iMessage with trade details (entries + exits)
+6. Jess can say "kalshi undo" to reverse within 1 hour
 
 **Logs:** `logs/kalshi/auto_trades.jsonl`
 
@@ -206,6 +234,7 @@ launchctl unload ~/Library/LaunchAgents/com.clawd.kalshi-scanner.plist
 |------|--------|----------|-------|-----------|------|--------|
 | 2026-01-25 | DOGE cuts >$250B | NO | 77¢ | 25 | $19.25 | ✅ FILLED |
 | 2026-01-25 | Trump ends Fed | NO | 92¢ | 21 | $19.32 | ✅ FILLED |
+| 2026-01-25 | Trump ends Fed | SELL NO | 90¢ | 5/21 | +$4.46 | ⏳ 16 RESTING |
 | 2026-01-25 | DOGE cuts $1T | NO | 88¢ | 1 | $0.88 | ⏳ PARTIAL (21 pending) |
 
 **Total Invested:** $39.45
@@ -216,5 +245,22 @@ launchctl unload ~/Library/LaunchAgents/com.clawd.kalshi-scanner.plist
 
 ## Notes
 
-*Strategy notes from Grok will go here*
+### ⚠️ Position Review: "Trump Ends Fed" (NO @ 92¢)
+**Grok recommends exiting this position.** Reasoning: 92¢ for NO leaves only 8¢ upside ($1.68 potential profit on 21 contracts) while risking $19.32 if it flips to YES. The risk/reward ratio is unfavorable. Consider selling this position to free up capital for higher-ROI CPI/economic trades.
+
+**DO NOT auto-exit** — manual decision required by Jess.
+
+### Grok v2 Recommendations (2026-01-25) — ALL IMPLEMENTED
+1. ✅ Exit long-dated positions (>12mo) — selling Trump/Fed 2029
+2. ✅ Smaller bets: $10 per trade (10%) instead of $20 (20%)
+3. ✅ Add CPI probability model using FRED historical data (12-month MoM distribution)
+4. ✅ Event-driven trading: catalyst calendar (Fed meetings, CPI releases, jobs reports within 48h)
+5. ✅ Better sports odds: multi-book consensus, American odds → implied probability, >5% gap flagging
+6. ✅ Add stop-loss (-15%) and take-profit (+20%) auto-exit monitoring
+7. ❌ Don't market-make — $100 too small
+8. ✅ More keyword rules: CPI ranges (0.0-0.4%), Fed decisions (hold/cut/hike), GDP growth, unemployment, weather (hurricane/temperature/cities), NFL (14 teams), NBA (10 teams)
+9. ✅ Trade more frequently with smaller bets around catalysts (max 6 positions)
+10. ✅ Max 12 month positions only (60-day scanner window)
+
+**Rule change:** No positions resolving beyond 12 months.
 
