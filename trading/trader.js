@@ -43,6 +43,26 @@ function loadTrades() {
   catch(e) { return []; }
 }
 
+// Calculate cost basis from trade history
+function getCostBasis(coin) {
+  const trades = loadTrades();
+  let totalSpent = 0;
+  let totalQty = 0;
+  for (const t of trades) {
+    if (!t.symbol || !t.symbol.startsWith(coin)) continue;
+    if (t.side === 'BUY') {
+      totalSpent += parseFloat(t.value) || 0;
+      totalQty += parseFloat(t.quantity) || 0;
+    } else if (t.side === 'SELL') {
+      // Reduce cost basis proportionally
+      const soldPct = totalQty > 0 ? (parseFloat(t.quantity) / totalQty) : 0;
+      totalSpent -= totalSpent * soldPct;
+      totalQty -= parseFloat(t.quantity) || 0;
+    }
+  }
+  return totalSpent > 0 ? totalSpent : null;
+}
+
 async function run() {
   console.log('=== RAVEN CRYPTO TRADER ===');
   console.log('Time:', new Date().toISOString());
@@ -119,16 +139,34 @@ async function run() {
         continue;
       }
       
-      // HARD FIX: If Grok says SELL a non-protected asset, execute it — don't second-guess
+      // If Grok says SELL a non-protected asset — only sell if we're in PROFIT on it
+      // Never sell at a loss unless sentiment is extremely bearish (< -60)
       if (effectiveAction === 'SELL' && currentQty > 0 && currentValue > 5) {
-        console.log(`  📉 Grok says SELL ${coin}. Adding sell action directly.`);
-        actions.push({
-          coin, symbol, currentPrice, currentQty, currentValue,
-          action: 'SELL',
-          confidence: Math.abs(data.sentiment) || 70,
-          amount_usd: currentValue * 0.5,  // Sell 50% of position on bearish signal
-          reasoning: `Grok sentiment SELL (${data.sentiment}): ${data.catalysts}`.slice(0, 200)
-        });
+        const costBasis = getCostBasis(coin);
+        const inProfit = costBasis ? (currentValue > costBasis) : false;
+        const extremelyBearish = typeof data.sentiment === 'number' && data.sentiment <= -60;
+        
+        if (inProfit) {
+          console.log(`  📉 Grok says SELL ${coin}. In profit ($${currentValue.toFixed(2)} vs cost $${costBasis?.toFixed(2)}). Selling 50%.`);
+          actions.push({
+            coin, symbol, currentPrice, currentQty, currentValue,
+            action: 'SELL',
+            confidence: Math.abs(data.sentiment) || 70,
+            amount_usd: currentValue * 0.5,
+            reasoning: `PROFIT TAKE — Grok SELL (${data.sentiment}): ${data.catalysts}`.slice(0, 200)
+          });
+        } else if (extremelyBearish) {
+          console.log(`  🚨 Grok EXTREMELY BEARISH on ${coin} (${data.sentiment}). Selling 25% to cut losses.`);
+          actions.push({
+            coin, symbol, currentPrice, currentQty, currentValue,
+            action: 'SELL',
+            confidence: Math.abs(data.sentiment) || 70,
+            amount_usd: currentValue * 0.25,  // Only 25% on loss cuts
+            reasoning: `LOSS CUT — Grok extreme bearish (${data.sentiment}): ${data.catalysts}`.slice(0, 200)
+          });
+        } else {
+          console.log(`  ⏸️ Grok says SELL ${coin} but we're at a LOSS (cost: $${costBasis?.toFixed(2) || '?'}). Holding — not selling at a loss unless extreme.`);
+        }
         continue;
       }
       
