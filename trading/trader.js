@@ -15,7 +15,7 @@ const RULES = {
   maxSingleTrade: 250,       // Max $ per trade
   maxDailyLoss: 150,         // Stop trading if daily loss exceeds this
   minConfidence: 60,         // Minimum Grok confidence to act
-  protectedAssets: ['BTC'],  // Don't sell these (long-term holds)
+  protectedAssets: ['BTC', 'DOGE'],  // Don't sell these (long-term holds)
   tradableSymbols: ['DOGE-USD', 'SOL-USD', 'XRP-USD', 'TRUMP-USD', 'PEPE-USD', 'BONK-USD', 'BTC-USD'],
   maxPositionPct: 0.20,      // Max 20% of portfolio in one asset (excluding DOGE/BTC)
 };
