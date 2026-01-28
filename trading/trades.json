@@ -1,0 +1,79 @@
+[
+  {
+    "timestamp": "2026-01-27T04:00:19.742Z",
+    "symbol": "TRUMP-USD",
+    "side": "BUY",
+    "quantity": 52.1089,
+    "price": 4.7976426,
+    "value": "250.00",
+    "reasoning": "Sentiment score: +45 (positive due to recent political buzz and meme coin hype). Key factors: Positi",
+    "confidence": 65,
+    "orderId": "69783853-6853-49e7-826f-6818eb2d01fd"
+  },
+  {
+    "timestamp": "2026-01-27T08:01:34.167Z",
+    "symbol": "SOL-USD",
+    "side": "BUY",
+    "quantity": 0.4019,
+    "price": 124.38594926,
+    "value": "50.00",
+    "reasoning": "Sentiment score: +60 (moderately positive due to Solana's ecosystem growth and recent momentum). Key",
+    "confidence": 70,
+    "orderId": "697870dd-f2f9-4554-8fa6-ee031f654cf3"
+  },
+  {
+    "timestamp": "2026-01-27T12:02:58.359Z",
+    "symbol": "TRUMP-USD",
+    "side": "BUY",
+    "quantity": 4.2099,
+    "price": 4.75061215,
+    "value": "20.00",
+    "reasoning": "Sentiment score: +40 (moderately positive, driven by recent political buzz and meme coin hype, but v",
+    "confidence": 60,
+    "orderId": "6978a971-512a-4ccd-839f-4cdbf5006c0a"
+  },
+  {
+    "timestamp": "2026-01-27T22:39:17.465Z",
+    "symbol": "TRUMP-USD",
+    "side": "SELL",
+    "quantity": 52.0147,
+    "price": 4.8063248,
+    "value": "250.00",
+    "reasoning": "PROFIT TAKE — Grok SELL (30): Political news tied to US elections and meme-driven speculation; no of",
+    "confidence": 30,
+    "orderId": "69793e95-8b89-4e5a-8d9e-51604c7757c3"
+  },
+  {
+    "timestamp": "2026-01-28T00:40:15.786Z",
+    "symbol": "SOL-USD",
+    "side": "SELL",
+    "quantity": 1.2572,
+    "price": 126.59925252645,
+    "value": "159.17",
+    "reasoning": "PROFIT TAKE — Grok SELL (50): Solana ecosystem growth with new DeFi partnerships and network upgrade",
+    "confidence": 50,
+    "orderId": "69795aef-8a07-482b-b0d5-694b53e56f78"
+  },
+  {
+    "timestamp": "2026-01-28T00:40:16.188Z",
+    "symbol": "TRUMP-USD",
+    "side": "SELL",
+    "quantity": 51.3031,
+    "price": 4.7818535,
+    "value": "245.32",
+    "reasoning": "PROFIT TAKE — Grok SELL (10): Speculative ties to US political events; recent election-related buzz ",
+    "confidence": 10,
+    "orderId": "69795aef-8f94-47ce-ae91-68a39407c7ab"
+  },
+  {
+    "timestamp": "2026-01-28T02:41:16.858Z",
+    "symbol": "BTC-USD",
+    "side": "BUY",
+    "quantity": 0.002805,
+    "price": 89115.9167968,
+    "value": "250.00",
+    "reasoning": "[Grok+Bravo] Sentiment score: +50 (moderately bullish due to recent BTC momentum and market hype, bu",
+    "confidence": 70,
+    "orderId": "6979774c-8882-4482-8163-127721832c6d"
+  }
+]

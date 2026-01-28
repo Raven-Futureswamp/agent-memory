@@ -1,1 +1,3 @@
 .env
+.kalshi-private-key.pem
+credentials.md

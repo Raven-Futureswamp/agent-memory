@@ -1,0 +1,30 @@
+{
+  "KXTRUMPVISITGREENLAND-26FEB01": {
+    "first_bought": "2026-01-26T05:19:00Z",
+    "total_contracts": 300,
+    "total_cost_cents": 300,
+    "market_name": "Trump Visits Greenland by Feb 1",
+    "last_bought": "2026-01-26T18:18:00Z"
+  },
+  "KXCPICOMBO-26JAN-0224": {
+    "first_bought": "2026-01-26T18:18:00Z",
+    "total_contracts": 37,
+    "total_cost_cents": 500,
+    "market_name": "CPI Combo Jan 26",
+    "last_bought": "2026-01-26T18:18:00Z"
+  },
+  "KXCPICOMBO-26JAN-01226": {
+    "first_bought": "2026-01-26T14:33:00Z",
+    "total_contracts": 250,
+    "total_cost_cents": 1000,
+    "market_name": "CPI Combo Jan 26",
+    "last_bought": "2026-01-26T14:33:00Z"
+  },
+  "KXCPI-26JAN-T0.1": {
+    "first_bought": "2026-01-26T12:58:00Z",
+    "total_contracts": 28,
+    "total_cost_cents": 400,
+    "market_name": "CPI Jan 26 Threshold",
+    "last_bought": "2026-01-26T12:58:00Z"
+  }
+}

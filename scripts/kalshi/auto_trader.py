@@ -35,6 +35,7 @@ from arbitrage_v2 import run as run_scan
 LOG_DIR = PROJECT_ROOT / "logs" / "kalshi"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 TRADE_LOG = LOG_DIR / "auto_trades.jsonl"
+POSITION_TRACKER = LOG_DIR / "held_positions.json"
 
 # ============== RISK RULES ==============
 CAPITAL = 100_00           # $100 in cents
@@ -51,6 +52,56 @@ MIN_CASH_TO_TRADE = 600    # Need at least $6 to attempt any trade ($5 buffer + 
 # Stop-loss / Take-profit thresholds (Grok recs)
 STOP_LOSS_PCT = -0.15      # Exit if position value drops 15%
 TAKE_PROFIT_PCT = 0.20     # Exit if position value rises 20%
+
+
+def load_position_tracker():
+    """Load local position tracker — prevents re-buying same markets across runs."""
+    try:
+        return json.loads(POSITION_TRACKER.read_text())
+    except:
+        return {}
+
+def save_position_tracker(tracker):
+    """Save local position tracker."""
+    POSITION_TRACKER.write_text(json.dumps(tracker, indent=2))
+
+def track_position(ticker, trade_info):
+    """Add a ticker to the local position tracker."""
+    tracker = load_position_tracker()
+    if ticker not in tracker:
+        tracker[ticker] = {
+            "first_bought": trade_info.get("timestamp", datetime.now(timezone.utc).isoformat()),
+            "total_contracts": 0,
+            "total_cost_cents": 0,
+            "market_name": trade_info.get("name", ""),
+        }
+    tracker[ticker]["total_contracts"] += trade_info.get("count", 0)
+    tracker[ticker]["total_cost_cents"] += trade_info.get("total_cost", 0)
+    tracker[ticker]["last_bought"] = datetime.now(timezone.utc).isoformat()
+    save_position_tracker(tracker)
+
+def get_tracked_tickers():
+    """Get set of tickers we've already bought (local tracking)."""
+    tracker = load_position_tracker()
+    return set(tracker.keys())
+
+def clear_resolved_positions(tracker):
+    """Remove positions from tracker that have resolved (past their close date)."""
+    now = datetime.now(timezone.utc)
+    to_remove = []
+    for ticker, info in tracker.items():
+        # Extract date from ticker format like KXTRUMPVISITGREENLAND-26FEB01
+        # Keep positions for 7 days after last buy as safety buffer
+        last_bought = info.get("last_bought", info.get("first_bought", ""))
+        try:
+            lb = datetime.fromisoformat(last_bought.replace("Z", "+00:00"))
+            if (now - lb).days > 60:  # Remove after 60 days regardless
+                to_remove.append(ticker)
+        except:
+            pass
+    for t in to_remove:
+        del tracker[t]
+    return tracker
 
 
 def check_stop_loss_take_profit(client, positions):
@@ -407,14 +458,24 @@ def run_auto_trader():
     # 4. Evaluate each opportunity
     trades_made = []
     
-    # Collect tickers we already hold to avoid duplicate buys
+    # Collect tickers we already hold — use BOTH API positions AND local tracker
     held_tickers = set()
     for p in positions:
         t = getattr(p, 'ticker', '')
         if t and getattr(p, 'position', 0) != 0:
             held_tickers.add(t)
+    
+    # Also check local tracker (prevents re-buying across runs)
+    tracked = get_tracked_tickers()
+    held_tickers.update(tracked)
+    
+    # Clean up old resolved positions from tracker
+    tracker = load_position_tracker()
+    tracker = clear_resolved_positions(tracker)
+    save_position_tracker(tracker)
+    
     if held_tickers:
-        print(f"📌 Already holding: {', '.join(held_tickers)}")
+        print(f"📌 Already holding (API + local): {', '.join(held_tickers)}")
     
     print("🎯 Evaluating opportunities against risk rules...")
     print("-" * 65)
@@ -463,7 +524,7 @@ def run_auto_trader():
             cash -= order["total_cost_cents"]
             num_positions += 1
             held_tickers.add(ticker)
-            trades_made.append({
+            trade_record = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "name": name,
                 "ticker": result.get("ticker"),
@@ -475,7 +536,10 @@ def run_auto_trader():
                 "spread": opp["spread"],
                 "external_source": opp.get("external_source"),
                 "catalyst": catalyst_note or None,
-            })
+            }
+            trades_made.append(trade_record)
+            # Track locally to prevent re-buying across runs
+            track_position(ticker, trade_record)
         else:
             print(f"  ⚠️ TRADE FAILED: {result.get('error')}")
             print(f"  🛑 Stopping — likely insufficient funds. No more attempts this run.")

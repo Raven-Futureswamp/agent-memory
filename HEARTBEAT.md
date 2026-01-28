@@ -1,4 +1,10 @@
 # HEARTBEAT.md
 
-# Keep this file empty (or with only comments) to skip heartbeat API calls.
-# Add tasks below when you want the agent to check something periodically.
+## Session Health Check
+Run: `bash /Users/studiomac/clawd/scripts/session-health.sh`
+
+If output contains "CRITICAL" or "WARNING":
+- CRITICAL (orphaned tool_results): Alert Jess immediately via iMessage. Session corruption detected — needs manual fix.
+- WARNING (large session): Note it but don't alert unless >20MB.
+
+If output is "OK": No action needed, reply HEARTBEAT_OK.

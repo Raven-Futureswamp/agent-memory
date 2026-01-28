@@ -11,8 +11,9 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 Before doing anything else:
 1. Read `SOUL.md` — this is who you are
 2. Read `USER.md` — this is who you're helping
-3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
-4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+3. Read `INDEX.md` — master recovery file (projects, status, what we're working on)
+4. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
+5. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
 
 Don't ask permission. Just do it.
 
@@ -23,6 +24,13 @@ You wake up fresh each session. These files are your continuity:
 - **Long-term:** `MEMORY.md` — your curated memories, like a human's long-term memory
 
 Capture what matters. Decisions, context, things to remember. Skip the secrets unless asked to keep them.
+
+### 📁 Project Files — The Anti-Amnesia System
+- Every project gets a folder in `projects/` with a `STATUS.md`
+- **Update STATUS.md DURING work, not after** — if context gets nuked mid-session, the file has the checkpoint
+- The "Where We Left Off" section is the most critical — future-you reads this first
+- Keep `INDEX.md` in sync whenever adding/changing projects
+- When starting work on any project: read its STATUS.md first, update it when done
 
 ### 🧠 MEMORY.md - Your Long-Term Memory
 - **ONLY load in main session** (direct chats with your human)
