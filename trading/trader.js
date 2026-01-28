@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Raven Crypto Trader — Robinhood + Grok Sentiment
+// Raven Crypto Trader — Robinhood + Grok Sentiment + J Bravo TA
 const rh = require('./robinhood');
 const grok = require('./grok');
+const ta = require('./technicals');
 const fs = require('fs');
 const path = require('path');
 
@@ -111,6 +112,25 @@ async function run() {
     console.log('🌍 Macro:', sentiment.parsed.macro_factors);
     console.log('');
     
+    // 4. Run J Bravo Technical Analysis
+    console.log('📐 Running J Bravo Technical Analysis...');
+    let bravoSignals = {};
+    try {
+      bravoSignals = await ta.analyzeAll(tradableAssets);
+      for (const [coin, sig] of Object.entries(bravoSignals)) {
+        if (sig.error) {
+          console.log(`  ${coin}: ⚠️ ${sig.error}`);
+        } else {
+          console.log(`  ${coin}: Signal=${sig.signal} Confidence=${sig.confidence}% | SMA9=${sig.indicators.sma9} EMA20=${sig.indicators.ema20} RSI=${sig.indicators.rsi} MA=${sig.indicators.maAlignment}`);
+          console.log(`    ${sig.reasons.join(' | ')}`);
+        }
+      }
+    } catch(e) {
+      console.log('  ⚠️ TA analysis failed:', e.message);
+    }
+    console.log('');
+    
+    // 5. Combine Grok + Bravo signals
     const actions = [];
     
     for (const [coin, data] of Object.entries(sentiment.parsed.coins || {})) {
@@ -122,14 +142,31 @@ async function run() {
       const currentValue = holding ? holding.value : 0;
       const currentPrice = holding ? holding.price : 0;
       
+      // Get Bravo TA signal for this coin
+      const bravo = bravoSignals[coin] || {};
+      const bravoSignal = bravo.signal || 'UNKNOWN';
+      const bravoConfidence = bravo.confidence || 0;
+      
       // HARD FIX: If sentiment score is negative, force action to SELL regardless of what Grok says
       let effectiveAction = data.action;
       if (typeof data.sentiment === 'number' && data.sentiment < 0 && data.action === 'BUY') {
-        console.log(`  🚫 ${coin}: Sentiment score is NEGATIVE (${data.sentiment}) but action says BUY. Overriding to HOLD.`);
+        console.log(`  🚫 ${coin}: Grok sentiment NEGATIVE (${data.sentiment}) but says BUY. Overriding to HOLD.`);
         effectiveAction = 'HOLD';
       }
       
-      console.log(`${coin}: Sentiment ${data.sentiment}, Action: ${data.action} → Effective: ${effectiveAction}`);
+      // J Bravo override: If Bravo says SELL (below EMA20), don't buy regardless
+      if (bravoSignal === 'SELL' && effectiveAction === 'BUY') {
+        console.log(`  📐 ${coin}: Bravo says SELL (below EMA20) — blocking BUY.`);
+        effectiveAction = 'HOLD';
+      }
+      
+      // J Bravo boost: If Bravo says SELL and Grok is neutral/bearish, force SELL
+      if (bravoSignal === 'SELL' && effectiveAction === 'HOLD' && currentQty > 0) {
+        console.log(`  📐 ${coin}: Bravo SELL + Grok HOLD — triggering SELL.`);
+        effectiveAction = 'SELL';
+      }
+      
+      console.log(`${coin}: Grok=${data.action}(${data.sentiment}) + Bravo=${bravoSignal}(${bravoConfidence}%) → Effective: ${effectiveAction}`);
       console.log(`  Catalysts: ${data.catalysts}`);
       console.log(`  Outlook: ${data.outlook}`);
       
@@ -173,18 +210,29 @@ async function run() {
       // Get detailed trade setup from Grok for BUY signals only
       if (effectiveAction === 'BUY' && currentPrice > 0) {
         const setup = await grok.analyzeTradeSetup(symbol, currentPrice, currentQty, buyingPower);
-        if (setup.parsed && setup.parsed.confidence >= RULES.minConfidence) {
-          // Double-check: trade setup must also say BUY
-          if (setup.parsed.action !== 'BUY') {
-            console.log(`  ⚠️ Trade setup says ${setup.parsed.action}, not BUY. Skipping.`);
-          } else {
+        if (setup.parsed && setup.parsed.action === 'BUY') {
+          // Combine Grok confidence with Bravo signal
+          let combinedConfidence = setup.parsed.confidence;
+          if (bravoSignal === 'BUY') {
+            combinedConfidence += 15;  // Bravo agrees — boost
+            console.log(`  📐✅ Bravo confirms BUY — confidence boosted (+15)`);
+          } else if (bravoSignal === 'HOLD') {
+            combinedConfidence -= 10;  // Bravo neutral — slight penalty
+            console.log(`  📐⏸️ Bravo says HOLD — confidence reduced (-10)`);
+          }
+          
+          if (combinedConfidence >= RULES.minConfidence) {
             actions.push({
               coin, symbol, currentPrice, currentQty, currentValue,
-              ...setup.parsed
+              ...setup.parsed,
+              confidence: Math.min(combinedConfidence, 100),
+              reasoning: `[Grok+Bravo] ${setup.parsed.reasoning}`.slice(0, 200)
             });
+          } else {
+            console.log(`  ⏸️ Combined confidence too low (${combinedConfidence}%). Skipping.`);
           }
         } else if (setup.parsed) {
-          console.log(`  ⏸️ Confidence too low (${setup.parsed?.confidence || 0}%). Skipping.`);
+          console.log(`  ⚠️ Trade setup says ${setup.parsed.action}, not BUY. Skipping.`);
         }
       }
       console.log('');
